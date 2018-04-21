@@ -1,2 +1,5 @@
-pycrypto
 cryptography
+flask
+pycrypto
+requests
+twilio
