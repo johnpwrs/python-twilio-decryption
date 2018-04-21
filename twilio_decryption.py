@@ -1,9 +1,8 @@
 import requests
 from config import TWILIO_SID, TWILIO_AUTH_TOKEN, PORT, PRIVATE_KEY, CHUNK_SIZE
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.Hash import SHA256
-from Crypto.PublicKey import RSA
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from flask import Flask, Response
 from requests.auth import HTTPBasicAuth
@@ -32,9 +31,15 @@ def decrypt_recording(recording_sid):
 
   # 2) Retrieve customer private key corresponding to public_key_sid and
   # use it to decrypt base 64 decoded encrypted_cek via RSAES-OAEP-SHA256-MGF1
-  key = RSA.importKey(PRIVATE_KEY)
-  rsa_cipher = PKCS1_OAEP.new(key, hashAlgo=SHA256)
-  decrypted_cek = rsa_cipher.decrypt(encrypted_cek.decode('base64'))
+  key = serialization.load_pem_private_key(PRIVATE_KEY, password=None, backend=default_backend())
+  decrypted_cek = key.decrypt(
+    encrypted_cek.decode('base64'),
+    padding.OAEP(
+      mgf=padding.MGF1(algorithm=hashes.SHA256()),
+      algorithm=hashes.SHA256(),
+      label=None
+    )
+  )
 
   # 3) Initialize a AES256-GCM SecretKey object with decrypted CEK and base 64 decoded iv
   decryptor = Cipher(

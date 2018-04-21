@@ -1,5 +1,4 @@
 cryptography
 flask
-pycrypto
 requests
 twilio
